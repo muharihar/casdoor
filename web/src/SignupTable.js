@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -159,7 +159,7 @@ class SignupTable extends React.Component {
         title: i18next.t("provider:rule"),
         dataIndex: 'rule',
         key: 'rule',
-        width: '120px',
+        width: '155px',
         render: (text, record, index) => {
           let options = [];
           if (record.name === "ID") {
@@ -167,10 +167,16 @@ class SignupTable extends React.Component {
               {id: 'Random', name: 'Random'},
               {id: 'Incremental', name: 'Incremental'},
             ];
-          } if (record.name === "Display name") {
+          } else if (record.name === "Display name") {
             options = [
               {id: 'None', name: 'None'},
-              {id: 'Personal', name: 'Personal'},
+              {id: 'Real name', name: 'Real name'},
+              {id: 'First, last', name: 'First, last'},
+            ];
+          } else if (record.name === "Email") {
+            options = [
+              {id: 'Normal', name: 'Normal'},
+              {id: 'No verification', name: 'No verification'},
             ];
           }
 

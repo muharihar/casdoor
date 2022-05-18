@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 package storage
 
-import "github.com/qor/oss"
+import "github.com/casdoor/oss"
 
 func GetStorageProvider(providerType string, clientId string, clientSecret string, region string, bucket string, endpoint string) oss.StorageInterface {
 	switch providerType {
@@ -26,6 +26,8 @@ func GetStorageProvider(providerType string, clientId string, clientSecret strin
 		return NewAliyunOssStorageProvider(clientId, clientSecret, region, bucket, endpoint)
 	case "Tencent Cloud COS":
 		return NewTencentCloudCosStorageProvider(clientId, clientSecret, region, bucket, endpoint)
+	case "Azure Blob":
+		return NewAzureBlobStorageProvider(clientId, clientSecret, region, bucket, endpoint)
 	}
 
 	return nil

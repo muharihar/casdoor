@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/casbin/casdoor/util"
+	"github.com/casdoor/casdoor/util"
 	"xorm.io/core"
 )
 
@@ -95,5 +95,16 @@ func TestGetMaskedUsers(t *testing.T) {
 				t.Errorf("GetMaskedUsers() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestGetUserByField(t *testing.T) {
+	InitConfig()
+
+	user := GetUserByField("built-in", "DingTalk", "test")
+	if user != nil {
+		t.Logf("%+v", user)
+	} else {
+		t.Log("no user found")
 	}
 }

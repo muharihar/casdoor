@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -192,15 +192,50 @@ class SignupPage extends React.Component {
         </Form.Item>
       )
     } else if (signupItem.name === "Display name") {
+      if (signupItem.rule === "First, last" && Setting.getLanguage() !== "zh") {
+        return (
+          <React.Fragment>
+            <Form.Item
+              name="firstName"
+              key="firstName"
+              label={i18next.t("general:First name")}
+              rules={[
+                {
+                  required: required,
+                  message: i18next.t("signup:Please input your first name!"),
+                  whitespace: true,
+                },
+              ]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item
+              name="lastName"
+              key="lastName"
+              label={i18next.t("general:Last name")}
+              rules={[
+                {
+                  required: required,
+                  message: i18next.t("signup:Please input your last name!"),
+                  whitespace: true,
+                },
+              ]}
+            >
+              <Input />
+            </Form.Item>
+          </React.Fragment>
+        )
+      }
+
       return (
         <Form.Item
           name="name"
           key="name"
-          label={signupItem.rule === "Personal" ? i18next.t("general:Personal name") : i18next.t("general:Display name")}
+          label={(signupItem.rule === "Real name" || signupItem.rule === "First, last") ? i18next.t("general:Real name") : i18next.t("general:Display name")}
           rules={[
             {
               required: required,
-              message: signupItem.rule === "Personal" ? i18next.t("signup:Please input your personal name!") : i18next.t("signup:Please input your display name!"),
+              message: (signupItem.rule === "Real name" || signupItem.rule === "First, last") ? i18next.t("signup:Please input your real name!") : i18next.t("signup:Please input your display name!"),
               whitespace: true,
             },
           ]}
@@ -290,20 +325,23 @@ class SignupPage extends React.Component {
           >
             <Input onChange={e => this.setState({email: e.target.value})} />
           </Form.Item>
-          <Form.Item
-            name="emailCode"
-            key="emailCode"
-            label={i18next.t("code:Email code")}
-            rules={[{
-              required: required,
-              message: i18next.t("code:Please input your verification code!"),
-            }]}
-          >
-            <CountDownInput
-              disabled={!this.state.validEmail}
-              onButtonClickArgs={[this.state.email, "email", Setting.getApplicationOrgName(application)]}
-            />
-          </Form.Item>
+          {
+            signupItem.rule !== "No verification" && 
+            <Form.Item
+              name="emailCode"
+              key="emailCode"
+              label={i18next.t("code:Email code")}
+              rules={[{
+                required: required,
+                message: i18next.t("code:Please input your verification code!"),
+              }]}
+            >
+              <CountDownInput
+                disabled={!this.state.validEmail}
+                onButtonClickArgs={[this.state.email, "email", Setting.getApplicationOrgName(application)]}
+              />
+            </Form.Item>
+          }
         </React.Fragment>
       )
     } else if (signupItem.name === "Phone") {
@@ -522,7 +560,12 @@ class SignupPage extends React.Component {
           </Button>
           &nbsp;&nbsp;{i18next.t("signup:Have account?")}&nbsp;
           <a onClick={() => {
-            Setting.goToLogin(this, application);
+            let linkInStorage = sessionStorage.getItem("loginURL")
+            if(linkInStorage != null){
+              Setting.goToLink(linkInStorage)
+            }else{
+              Setting.goToLogin(this, application)
+            }
           }}>
             {i18next.t("signup:sign in now")}
           </a>

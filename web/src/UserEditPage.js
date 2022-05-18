@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import React from "react";
-import {Button, Card, Col, Input, Row, Select, Switch} from 'antd';
+import {Button, Card, Col, Input, Result, Row, Select, Spin, Switch} from 'antd';
 import * as UserBackend from "./backend/UserBackend";
 import * as OrganizationBackend from "./backend/OrganizationBackend";
 import * as Setting from "./Setting";
@@ -46,6 +46,8 @@ class UserEditPage extends React.Component {
       application: null,
       organizations: [],
       applications: [],
+      mode: props.location.mode !== undefined ? props.location.mode : "edit",
+      loading: true,
     };
   }
 
@@ -58,9 +60,14 @@ class UserEditPage extends React.Component {
 
   getUser() {
     UserBackend.getUser(this.state.organizationName, this.state.userName)
-      .then((user) => {
+      .then((data) => {
+        if (data.status === null || data.status !== "error") {
+          this.setState({
+            user: data,
+          });
+        }
         this.setState({
-          user: user,
+          loading: false,
         });
       });
   }
@@ -121,9 +128,10 @@ class UserEditPage extends React.Component {
     return (
       <Card size="small" title={
         <div>
-          {i18next.t("user:Edit User")}&nbsp;&nbsp;&nbsp;&nbsp;
+          {this.state.mode === "add" ? i18next.t("user:New User") : i18next.t("user:Edit User")}&nbsp;&nbsp;&nbsp;&nbsp;
           <Button onClick={() => this.submitUserEdit(false)}>{i18next.t("general:Save")}</Button>
           <Button style={{marginLeft: '20px'}} type="primary" onClick={() => this.submitUserEdit(true)}>{i18next.t("general:Save & Exit")}</Button>
+          {this.state.mode === "add" ? <Button style={{marginLeft: '20px'}} onClick={() => this.deleteUser()}>{i18next.t("general:Cancel")}</Button> : null}
         </div>
       } style={(Setting.isMobile())? {margin: '5px'}:{}} type="inner">
         <Row style={{marginTop: '10px'}} >
@@ -222,7 +230,11 @@ class UserEditPage extends React.Component {
             {Setting.getLabel(i18next.t("general:Email"), i18next.t("general:Email - Tooltip"))} :
           </Col>
           <Col style={{paddingRight: '20px'}} span={11} >
-            <Input value={this.state.user.email} disabled />
+            <Input value={this.state.user.email}
+                   disabled={this.state.user.id === this.props.account?.id ? true : !Setting.isAdminUser(this.props.account)}
+                   onChange={e => {
+                      this.updateUserField('email', e.target.value);
+                    }} />
           </Col>
           <Col span={11} >
             { this.state.user.id === this.props.account?.id ? (<ResetModal org={this.state.application?.organizationObj} buttonText={i18next.t("user:Reset Email...")} destType={"email"} />) : null}
@@ -233,7 +245,11 @@ class UserEditPage extends React.Component {
             {Setting.getLabel(i18next.t("general:Phone"), i18next.t("general:Phone - Tooltip"))} :
           </Col>
           <Col style={{paddingRight: '20px'}} span={11} >
-            <Input value={this.state.user.phone} addonBefore={`+${this.state.application?.organizationObj.phonePrefix}`} disabled />
+            <Input value={this.state.user.phone} addonBefore={`+${this.state.application?.organizationObj.phonePrefix}`}
+                   disabled={this.state.user.id === this.props.account?.id ? true : !Setting.isAdminUser(this.props.account)}
+                   onChange={e => {
+                      this.updateUserField('phone', e.target.value);
+                   }}/>
           </Col>
           <Col span={11} >
             { this.state.user.id === this.props.account?.id ? (<ResetModal org={this.state.application?.organizationObj} buttonText={i18next.t("user:Reset Phone...")} destType={"phone"} />) : null}
@@ -299,9 +315,24 @@ class UserEditPage extends React.Component {
             {Setting.getLabel(i18next.t("user:Tag"), i18next.t("user:Tag - Tooltip"))} :
           </Col>
           <Col span={22} >
-            <Input value={this.state.user.tag} onChange={e => {
-              this.updateUserField('tag', e.target.value);
-            }} />
+            {
+              this.state.application?.organizationObj.tags?.length > 0 ? (
+                <Select virtual={false} style={{width: '100%'}} value={this.state.user.tag} onChange={(value => {this.updateUserField('tag', value);})}>
+                  {
+                    this.state.application.organizationObj.tags?.map((tag, index) => {
+                      const tokens = tag.split("|");
+                      const value = tokens[0];
+                      const displayValue = Setting.getLanguage() !== "zh" ? tokens[0] : tokens[1];
+                      return <Option key={index} value={value}>{displayValue}</Option>
+                    })
+                  }
+                </Select>
+              ) : (
+                <Input value={this.state.user.tag} onChange={e => {
+                  this.updateUserField('tag', e.target.value);
+                }} />
+              )
+            }
           </Col>
         </Row>
         <Row style={{marginTop: '20px'}} >
@@ -398,6 +429,8 @@ class UserEditPage extends React.Component {
           )
         }
       </Card>
+
+
     )
   }
 
@@ -430,16 +463,38 @@ class UserEditPage extends React.Component {
       });
   }
 
+  deleteUser() {
+    UserBackend.deleteUser(this.state.user)
+      .then(() => {
+        this.props.history.push(`/users`);
+      })
+      .catch(error => {
+        Setting.showMessage("error", `User failed to delete: ${error}`);
+      });
+  }
+
   render() {
     return (
       <div>
       {
-        this.state.user !== null ? this.renderUser() : null
+        this.state.loading ? <Spin loading={this.state.loading} size="large" /> : (
+          this.state.user !== null ? this.renderUser() :
+            <Result
+              status="404"
+              title="404 NOT FOUND"
+              subTitle={i18next.t("general:Sorry, the user you visited does not exist or you are not authorized to access this user.")}
+              extra={<a href="/"><Button type="primary">{i18next.t("general:Back Home")}</Button></a>}
+            />
+        )
       }
-      <div style={{marginTop: '20px', marginLeft: '40px'}}>
-        <Button size="large" onClick={() => this.submitUserEdit(false)}>{i18next.t("general:Save")}</Button>
-        <Button style={{marginLeft: '20px'}} type="primary" size="large" onClick={() => this.submitUserEdit(true)}>{i18next.t("general:Save & Exit")}</Button>
-      </div>
+      {
+        this.state.user === null ? null :
+        <div style={{marginTop: '20px', marginLeft: '40px'}}>
+          <Button size="large" onClick={() => this.submitUserEdit(false)}>{i18next.t("general:Save")}</Button>
+          <Button style={{marginLeft: '20px'}} type="primary" size="large" onClick={() => this.submitUserEdit(true)}>{i18next.t("general:Save & Exit")}</Button>
+          {this.state.mode === "add" ? <Button style={{marginLeft: '20px'}} size="large" onClick={() => this.deleteUser()}>{i18next.t("general:Cancel")}</Button> : null}
+        </div>
+      }
     </div>
     );
   }

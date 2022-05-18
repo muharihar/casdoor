@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ package routers
 import (
 	"github.com/astaxie/beego"
 
-	"github.com/casbin/casdoor/controllers"
+	"github.com/casdoor/casdoor/controllers"
 )
 
 func init() {
@@ -50,9 +50,11 @@ func initAPI() {
 	beego.Router("/api/get-app-login", &controllers.ApiController{}, "GET:GetApplicationLogin")
 	beego.Router("/api/logout", &controllers.ApiController{}, "POST:Logout")
 	beego.Router("/api/get-account", &controllers.ApiController{}, "GET:GetAccount")
+	beego.Router("/api/userinfo", &controllers.ApiController{}, "GET:GetUserinfo")
 	beego.Router("/api/unlink", &controllers.ApiController{}, "POST:Unlink")
 	beego.Router("/api/get-saml-login", &controllers.ApiController{}, "GET:GetSamlLogin")
 	beego.Router("/api/acs", &controllers.ApiController{}, "POST:HandleSamlLogin")
+	beego.Router("/api/saml/metadata", &controllers.ApiController{}, "GET:GetSamlMeta")
 
 	beego.Router("/api/get-organizations", &controllers.ApiController{}, "GET:GetOrganizations")
 	beego.Router("/api/get-organization", &controllers.ApiController{}, "GET:GetOrganization")
@@ -126,6 +128,8 @@ func initAPI() {
 	beego.Router("/api/login/oauth/code", &controllers.ApiController{}, "POST:GetOAuthCode")
 	beego.Router("/api/login/oauth/access_token", &controllers.ApiController{}, "POST:GetOAuthToken")
 	beego.Router("/api/login/oauth/refresh_token", &controllers.ApiController{}, "POST:RefreshToken")
+	beego.Router("/api/login/oauth/introspect", &controllers.ApiController{}, "POST:IntrospectToken")
+	beego.Router("/api/login/oauth/logout", &controllers.ApiController{}, "GET:TokenLogout")
 
 	beego.Router("/api/get-records", &controllers.ApiController{}, "GET:GetRecords")
 	beego.Router("/api/get-records-filter", &controllers.ApiController{}, "POST:GetRecordsByFilter")
@@ -141,6 +145,7 @@ func initAPI() {
 	beego.Router("/api/update-syncer", &controllers.ApiController{}, "POST:UpdateSyncer")
 	beego.Router("/api/add-syncer", &controllers.ApiController{}, "POST:AddSyncer")
 	beego.Router("/api/delete-syncer", &controllers.ApiController{}, "POST:DeleteSyncer")
+	beego.Router("/api/run-syncer", &controllers.ApiController{}, "GET:RunSyncer")
 
 	beego.Router("/api/get-certs", &controllers.ApiController{}, "GET:GetCerts")
 	beego.Router("/api/get-cert", &controllers.ApiController{}, "GET:GetCert")
@@ -148,9 +153,35 @@ func initAPI() {
 	beego.Router("/api/add-cert", &controllers.ApiController{}, "POST:AddCert")
 	beego.Router("/api/delete-cert", &controllers.ApiController{}, "POST:DeleteCert")
 
+	beego.Router("/api/get-products", &controllers.ApiController{}, "GET:GetProducts")
+	beego.Router("/api/get-product", &controllers.ApiController{}, "GET:GetProduct")
+	beego.Router("/api/update-product", &controllers.ApiController{}, "POST:UpdateProduct")
+	beego.Router("/api/add-product", &controllers.ApiController{}, "POST:AddProduct")
+	beego.Router("/api/delete-product", &controllers.ApiController{}, "POST:DeleteProduct")
+	beego.Router("/api/buy-product", &controllers.ApiController{}, "POST:BuyProduct")
+
+	beego.Router("/api/get-payments", &controllers.ApiController{}, "GET:GetPayments")
+	beego.Router("/api/get-user-payments", &controllers.ApiController{}, "GET:GetUserPayments")
+	beego.Router("/api/get-payment", &controllers.ApiController{}, "GET:GetPayment")
+	beego.Router("/api/update-payment", &controllers.ApiController{}, "POST:UpdatePayment")
+	beego.Router("/api/add-payment", &controllers.ApiController{}, "POST:AddPayment")
+	beego.Router("/api/delete-payment", &controllers.ApiController{}, "POST:DeletePayment")
+	beego.Router("/api/notify-payment/?:owner/?:provider/?:product/?:payment", &controllers.ApiController{}, "POST:NotifyPayment")
+	beego.Router("/api/invoice-payment", &controllers.ApiController{}, "POST:InvoicePayment")
+
 	beego.Router("/api/send-email", &controllers.ApiController{}, "POST:SendEmail")
 	beego.Router("/api/send-sms", &controllers.ApiController{}, "POST:SendSms")
 
 	beego.Router("/.well-known/openid-configuration", &controllers.RootController{}, "GET:GetOidcDiscovery")
-	beego.Router("/api/certs", &controllers.RootController{}, "*:GetOidcCert")
+	beego.Router("/.well-known/jwks", &controllers.RootController{}, "*:GetJwks")
+
+	beego.Router("/cas/:organization/:application/serviceValidate", &controllers.RootController{}, "GET:CasServiceValidate")
+	beego.Router("/cas/:organization/:application/proxyValidate", &controllers.RootController{}, "GET:CasProxyValidate")
+	beego.Router("/cas/:organization/:application/proxy", &controllers.RootController{}, "GET:CasProxy")
+	beego.Router("/cas/:organization/:application/validate", &controllers.RootController{}, "GET:CasValidate")
+
+	beego.Router("/cas/:organization/:application/p3/serviceValidate", &controllers.RootController{}, "GET:CasP3ServiceAndProxyValidate")
+	beego.Router("/cas/:organization/:application/p3/proxyValidate", &controllers.RootController{}, "GET:CasP3ServiceAndProxyValidate")
+	beego.Router("/cas/:organization/:application/samlValidate", &controllers.RootController{}, "POST:SamlValidate")
+
 }

@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -52,5 +52,12 @@ export function deleteSyncer(syncer) {
     method: 'POST',
     credentials: 'include',
     body: JSON.stringify(newSyncer),
+  }).then(res => res.json());
+}
+
+export function runSyncer(owner, name) {
+  return fetch(`${Setting.ServerUrl}/api/run-syncer?id=${owner}/${encodeURIComponent(name)}`, {
+    method: 'GET',
+    credentials: 'include',
   }).then(res => res.json());
 }

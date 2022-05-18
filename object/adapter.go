@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,11 +19,12 @@ import (
 	"runtime"
 
 	"github.com/astaxie/beego"
-	"github.com/casbin/casdoor/conf"
-	"github.com/casbin/casdoor/util"
+	"github.com/casdoor/casdoor/conf"
+	"github.com/casdoor/casdoor/util"
 	//_ "github.com/denisenkom/go-mssqldb" // db = mssql
 	_ "github.com/go-sql-driver/mysql" // db = mysql
 	//_ "github.com/lib/pq"                // db = postgres
+	"xorm.io/core"
 	"xorm.io/xorm"
 )
 
@@ -40,7 +41,7 @@ func InitConfig() {
 
 func InitAdapter(createDatabase bool) {
 
-	adapter = NewAdapter(beego.AppConfig.String("driverName"), conf.GetBeegoConfDataSourceName(), beego.AppConfig.String("dbName"))
+	adapter = NewAdapter(conf.GetConfigString("driverName"), conf.GetBeegoConfDataSourceName(), conf.GetConfigString("dbName"))
 	if createDatabase {
 		adapter.CreateDatabase()
 	}
@@ -86,7 +87,7 @@ func (a *Adapter) CreateDatabase() error {
 	}
 	defer engine.Close()
 
-	_, err = engine.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s default charset utf8 COLLATE utf8_general_ci", a.dbName))
+	_, err = engine.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s default charset utf8mb4 COLLATE utf8mb4_general_ci", a.dbName))
 	return err
 }
 
@@ -110,6 +111,13 @@ func (a *Adapter) close() {
 }
 
 func (a *Adapter) createTable() {
+	showSql, _ := conf.GetConfigBool("showSql")
+	a.Engine.ShowSQL(showSql)
+
+	tableNamePrefix := conf.GetConfigString("tableNamePrefix")
+	tbMapper := core.NewPrefixMapper(core.SnakeMapper{}, tableNamePrefix)
+	a.Engine.SetTableMapper(tbMapper)
+
 	err := a.Engine.Sync2(new(Organization))
 	if err != nil {
 		panic(err)
@@ -175,6 +183,16 @@ func (a *Adapter) createTable() {
 		panic(err)
 	}
 
+	err = a.Engine.Sync2(new(Product))
+	if err != nil {
+		panic(err)
+	}
+
+	err = a.Engine.Sync2(new(Payment))
+	if err != nil {
+		panic(err)
+	}
+
 	err = a.Engine.Sync2(new(Ldap))
 	if err != nil {
 		panic(err)
@@ -182,12 +200,17 @@ func (a *Adapter) createTable() {
 }
 
 func GetSession(owner string, offset, limit int, field, value, sortField, sortOrder string) *xorm.Session {
-	session := adapter.Engine.Limit(limit, offset).Where("1=1")
+	session := adapter.Engine.Prepare()
+	if offset != -1 && limit != -1 {
+		session.Limit(limit, offset)
+	}
 	if owner != "" {
 		session = session.And("owner=?", owner)
 	}
 	if field != "" && value != "" {
-		session = session.And(fmt.Sprintf("%s like ?", util.SnakeString(field)), fmt.Sprintf("%%%s%%", value))
+		if filterField(field) {
+			session = session.And(fmt.Sprintf("%s like ?", util.SnakeString(field)), fmt.Sprintf("%%%s%%", value))
+		}
 	}
 	if sortField == "" || sortOrder == "" {
 		sortField = "created_time"

@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ package object
 import (
 	"fmt"
 
-	"github.com/casbin/casdoor/util"
+	"github.com/casdoor/casdoor/util"
 	"xorm.io/core"
 )
 
@@ -56,10 +56,7 @@ type Syncer struct {
 }
 
 func GetSyncerCount(owner, field, value string) int {
-	session := adapter.Engine.Where("owner=?", owner)
-	if field != "" && value != "" {
-		session = session.And(fmt.Sprintf("%s like ?", util.SnakeString(field)), fmt.Sprintf("%%%s%%", value))
-	}
+	session := GetSession(owner, -1, -1, field, value, "", "")
 	count, err := session.Count(&Syncer{})
 	if err != nil {
 		panic(err)
@@ -136,7 +133,11 @@ func UpdateSyncer(id string, syncer *Syncer) bool {
 		return false
 	}
 
-	affected, err := adapter.Engine.ID(core.PK{owner, name}).AllCols().Update(syncer)
+	session := adapter.Engine.ID(core.PK{owner, name}).AllCols()
+	if syncer.Password == "***" {
+		session.Omit("password")
+	}
+	affected, err := session.Update(syncer)
 	if err != nil {
 		panic(err)
 	}
@@ -208,4 +209,9 @@ func (syncer *Syncer) getTable() string {
 	} else {
 		return syncer.Table
 	}
+}
+
+func RunSyncer(syncer *Syncer) {
+	syncer.initAdapter()
+	syncer.syncUsers()
 }

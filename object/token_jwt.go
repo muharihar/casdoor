@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,11 +15,10 @@
 package object
 
 import (
-	_ "embed"
 	"fmt"
 	"time"
 
-	"github.com/astaxie/beego"
+	"github.com/casdoor/casdoor/conf"
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -27,6 +26,7 @@ type Claims struct {
 	*User
 	Nonce string `json:"nonce,omitempty"`
 	Tag   string `json:"tag,omitempty"`
+	Scope string `json:"scope,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -38,6 +38,7 @@ type UserShort struct {
 type ClaimsShort struct {
 	*UserShort
 	Nonce string `json:"nonce,omitempty"`
+	Scope string `json:"scope,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -53,25 +54,32 @@ func getShortClaims(claims Claims) ClaimsShort {
 	res := ClaimsShort{
 		UserShort:        getShortUser(claims.User),
 		Nonce:            claims.Nonce,
+		Scope:            claims.Scope,
 		RegisteredClaims: claims.RegisteredClaims,
 	}
 	return res
 }
 
-func generateJwtToken(application *Application, user *User, nonce string) (string, string, error) {
+func generateJwtToken(application *Application, user *User, nonce string, scope string, host string) (string, string, error) {
 	nowTime := time.Now()
 	expireTime := nowTime.Add(time.Duration(application.ExpireInHours) * time.Hour)
 	refreshExpireTime := nowTime.Add(time.Duration(application.RefreshExpireInHours) * time.Hour)
 
 	user.Password = ""
+	origin := conf.GetConfigString("origin")
+	_, originBackend := getOriginFromHost(host)
+	if origin != "" {
+		originBackend = origin
+	}
 
 	claims := Claims{
 		User:  user,
 		Nonce: nonce,
 		// FIXME: A workaround for custom claim by reusing `tag` in user info
-		Tag: user.Tag,
+		Tag:   user.Tag,
+		Scope: scope,
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    beego.AppConfig.String("origin"),
+			Issuer:    originBackend,
 			Subject:   user.Id,
 			Audience:  []string{application.ClientId},
 			ExpiresAt: jwt.NewNumericDate(expireTime),
@@ -137,4 +145,8 @@ func ParseJwtToken(token string, cert *Cert) (*Claims, error) {
 	}
 
 	return nil, err
+}
+
+func ParseJwtTokenByApplication(token string, application *Application) (*Claims, error) {
+	return ParseJwtToken(token, getCertByApplication(application))
 }

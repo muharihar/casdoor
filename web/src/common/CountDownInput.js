@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,8 +18,6 @@ import * as Setting from "../Setting";
 import i18next from "i18next";
 import * as UserBackend from "../backend/UserBackend";
 import {SafetyOutlined} from "@ant-design/icons";
-import * as Util from "../auth/Util";
-import {isValidEmail, isValidPhone} from "../Setting";
 
 const { Search } = Input;
 
@@ -49,14 +47,6 @@ export const CountDownInput = (props) => {
 
   const handleOk = () => {
     setVisible(false);
-    if (isValidEmail(onButtonClickArgs[0])) {
-        onButtonClickArgs[1] = "email";
-    } else if (isValidPhone(onButtonClickArgs[0])) {
-        onButtonClickArgs[1] = "phone";
-    } else {
-        Util.showMessage("error", i18next.t("login:Invalid Email or phone"))
-        return;
-    }
     setButtonLoading(true)
     UserBackend.sendCode(checkType, checkId, key, ...onButtonClickArgs).then(res => {
       setKey("");

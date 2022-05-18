@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@ package storage
 
 import (
 	awss3 "github.com/aws/aws-sdk-go/service/s3"
-	"github.com/qor/oss"
-	"github.com/qor/oss/s3"
+	"github.com/casdoor/oss"
+	"github.com/casdoor/oss/s3"
 )
 
 func NewAwsS3StorageProvider(clientId string, clientSecret string, region string, bucket string, endpoint string) oss.StorageInterface {

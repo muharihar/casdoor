@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/astaxie/beego"
-	"github.com/casbin/casdoor/object"
-	"github.com/casbin/casdoor/util"
+	"github.com/casdoor/casdoor/object"
+	"github.com/casdoor/casdoor/util"
 )
 
 // controller for handlers under /api uri
@@ -72,6 +72,37 @@ func (c *ApiController) GetSessionUsername() string {
 	return user.(string)
 }
 
+func (c *ApiController) GetSessionApplication() *object.Application {
+	clientId := c.GetSession("aud")
+	if clientId == nil {
+		return nil
+	}
+	application := object.GetApplicationByClientId(clientId.(string))
+	return application
+}
+
+func (c *ApiController) GetSessionOidc() (string, string) {
+	sessionData := c.GetSessionData()
+	if sessionData != nil &&
+		sessionData.ExpireTime != 0 &&
+		sessionData.ExpireTime < time.Now().Unix() {
+		c.SetSessionUsername("")
+		c.SetSessionData(nil)
+		return "", ""
+	}
+	scopeValue := c.GetSession("scope")
+	audValue := c.GetSession("aud")
+	var scope, aud string
+	var ok bool
+	if scope, ok = scopeValue.(string); !ok {
+		scope = ""
+	}
+	if aud, ok = audValue.(string); !ok {
+		aud = ""
+	}
+	return scope, aud
+}
+
 // SetSessionUsername ...
 func (c *ApiController) SetSessionUsername(user string) {
 	c.SetSession("username", user)
@@ -108,5 +139,13 @@ func wrapActionResponse(affected bool) *Response {
 		return &Response{Status: "ok", Msg: "", Data: "Affected"}
 	} else {
 		return &Response{Status: "ok", Msg: "", Data: "Unaffected"}
+	}
+}
+
+func wrapErrorResponse(err error) *Response {
+	if err == nil {
+		return &Response{Status: "ok", Msg: ""}
+	} else {
+		return &Response{Status: "error", Msg: err.Error()}
 	}
 }

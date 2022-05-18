@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/casbin/casdoor/idp"
+	"github.com/casdoor/casdoor/idp"
 	"xorm.io/core"
 )
 
@@ -29,7 +29,7 @@ func GetUserByField(organizationName string, field string, value string) *User {
 	}
 
 	user := User{Owner: organizationName}
-	existed, err := adapter.Engine.Where(fmt.Sprintf("%s=?", field), value).Get(&user)
+	existed, err := adapter.Engine.Where(fmt.Sprintf("%s=?", strings.ToLower(field)), value).Get(&user)
 	if err != nil {
 		panic(err)
 	}

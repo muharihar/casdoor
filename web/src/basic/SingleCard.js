@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,10 +51,10 @@ class SingleCard extends React.Component {
         <Card
           hoverable
           cover={
-            <img alt="logo" src={logo} width={"100%"} height={"100%"} />
+            <img alt="logo" src={logo} style={{width: "100%", height: "210px", objectFit: "scale-down"}} />
           }
           onClick={() => Setting.goToLinkSoft(this, link)}
-          style={isSingle ? {width: "320px"} : null}
+          style={isSingle ? {width: "320px"} : {width: "100%"}}
         >
           <Meta title={title} description={desc} />
           <br/>

@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,8 +16,9 @@ package object
 
 import (
 	"fmt"
+	"strings"
 
-	"github.com/casbin/casdoor/util"
+	"github.com/casdoor/casdoor/util"
 	"xorm.io/core"
 )
 
@@ -38,6 +39,7 @@ type Application struct {
 	EnableCodeSignin    bool            `json:"enableCodeSignin"`
 	Providers           []*ProviderItem `xorm:"mediumtext" json:"providers"`
 	SignupItems         []*SignupItem   `xorm:"varchar(1000)" json:"signupItems"`
+	GrantTypes          []string        `xorm:"varchar(1000)" json:"grantTypes"`
 	OrganizationObj     *Organization   `xorm:"-" json:"organizationObj"`
 
 	ClientId             string   `xorm:"varchar(100)" json:"clientId"`
@@ -56,10 +58,7 @@ type Application struct {
 }
 
 func GetApplicationCount(owner, field, value string) int {
-	session := adapter.Engine.Where("owner=?", owner)
-	if field != "" && value != "" {
-		session = session.And(fmt.Sprintf("%s like ?", util.SnakeString(field)), fmt.Sprintf("%%%s%%", value))
-	}
+	session := GetSession(owner, -1, -1, field, value, "", "")
 	count, err := session.Count(&Application{})
 	if err != nil {
 		panic(err)
@@ -218,6 +217,18 @@ func GetMaskedApplication(application *Application, userId string) *Application 
 	if application.ClientSecret != "" {
 		application.ClientSecret = "***"
 	}
+
+	if application.OrganizationObj != nil {
+		if application.OrganizationObj.MasterPassword != "" {
+			application.OrganizationObj.MasterPassword = "***"
+		}
+		if application.OrganizationObj.PasswordType != "" {
+			application.OrganizationObj.PasswordType = "***"
+		}
+		if application.OrganizationObj.PasswordSalt != "" {
+			application.OrganizationObj.PasswordSalt = "***"
+		}
+	}
 	return application
 }
 
@@ -246,7 +257,11 @@ func UpdateApplication(id string, application *Application) bool {
 		providerItem.Provider = nil
 	}
 
-	affected, err := adapter.Engine.ID(core.PK{owner, name}).AllCols().Update(application)
+	session := adapter.Engine.ID(core.PK{owner, name}).AllCols()
+	if application.ClientSecret == "***" {
+		session.Omit("client_secret")
+	}
+	affected, err := session.Update(application)
 	if err != nil {
 		panic(err)
 	}
@@ -284,4 +299,15 @@ func DeleteApplication(application *Application) bool {
 
 func (application *Application) GetId() string {
 	return fmt.Sprintf("%s/%s", application.Owner, application.Name)
+}
+
+func CheckRedirectUriValid(application *Application, redirectUri string) bool {
+	var validUri = false
+	for _, tmpUri := range application.RedirectUris {
+		if strings.Contains(redirectUri, tmpUri) {
+			validUri = true
+			break
+		}
+	}
+	return validUri
 }

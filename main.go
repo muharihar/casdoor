@@ -1,4 +1,4 @@
-// Copyright 2021 The casbin Authors. All Rights Reserved.
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,21 +16,24 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
-	"github.com/astaxie/beego/plugins/cors"
 	_ "github.com/astaxie/beego/session/redis"
-	"github.com/casbin/casdoor/authz"
-	"github.com/casbin/casdoor/object"
-	"github.com/casbin/casdoor/proxy"
-	"github.com/casbin/casdoor/routers"
-	_ "github.com/casbin/casdoor/routers"
+	"github.com/casdoor/casdoor/authz"
+	"github.com/casdoor/casdoor/conf"
+	"github.com/casdoor/casdoor/object"
+	"github.com/casdoor/casdoor/proxy"
+	"github.com/casdoor/casdoor/routers"
+	_ "github.com/casdoor/casdoor/routers"
+	"github.com/casdoor/casdoor/util"
 )
 
 func main() {
-	createDatabase := flag.Bool("createDatabase", false, "true if you need casdoor to create database")
+	createDatabase := flag.Bool("createDatabase", false, "true if you need Casdoor to create database")
 	flag.Parse()
+
 	object.InitAdapter(*createDatabase)
 	object.InitDb()
 	object.InitDefaultStorageProvider()
@@ -38,15 +41,7 @@ func main() {
 	proxy.InitHttpClient()
 	authz.InitAuthz()
 
-	go object.RunSyncUsersJob()
-
-	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "PUT", "PATCH"},
-		AllowHeaders:     []string{"Origin"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-	}))
+	util.SafeGoroutine(func() {object.RunSyncUsersJob()})
 
 	//beego.DelStaticPath("/static")
 	beego.SetStaticPath("/static", "web/build/static")
@@ -60,12 +55,12 @@ func main() {
 	beego.InsertFilter("*", beego.BeforeRouter, routers.RecordMessage)
 
 	beego.BConfig.WebConfig.Session.SessionName = "casdoor_session_id"
-	if beego.AppConfig.String("redisEndpoint") == "" {
+	if conf.GetConfigString("redisEndpoint") == "" {
 		beego.BConfig.WebConfig.Session.SessionProvider = "file"
 		beego.BConfig.WebConfig.Session.SessionProviderConfig = "./tmp"
 	} else {
 		beego.BConfig.WebConfig.Session.SessionProvider = "redis"
-		beego.BConfig.WebConfig.Session.SessionProviderConfig = beego.AppConfig.String("redisEndpoint")
+		beego.BConfig.WebConfig.Session.SessionProviderConfig = conf.GetConfigString("redisEndpoint")
 	}
 	beego.BConfig.WebConfig.Session.SessionCookieLifeTime = 3600 * 24 * 30
 	//beego.BConfig.WebConfig.Session.SessionCookieSameSite = http.SameSiteNoneMode
@@ -74,8 +69,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	port := beego.AppConfig.DefaultInt("httpport", 8000)
 	//logs.SetLevel(logs.LevelInformational)
 	logs.SetLogFuncCall(false)
-
-	beego.Run()
+	beego.Run(fmt.Sprintf(":%v", port))
 }
